@@ -1,10 +1,7 @@
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import '../widgets/imagepicker.dart';
+import 'package:flutter/material.dart';
 
 final _firebase = FirebaseAuth.instance;
 
@@ -20,66 +17,69 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
   var _isauthenticating = false;
-  File? _selectedimage;
   var _enteredemail = '';
   var _enteredusername = '';
   var _enteredpassword = '';
   var _islogin = true;
+  var _successMessage = '';  // Flag for success message
 
   void _issubmit() async {
     var isvalid = _form.currentState!.validate();
-    if (!isvalid || !_islogin && _selectedimage == null) {
-      //show error
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: Text('Error: Something went wrong'),
-      //   ),
-      // );
+    if (!isvalid) {
+      // Display error dialog
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Error'),
-            content: Text('Something went wrong'),
+            title: const Text('Error'),
+            content: const Text('Please check your inputs.'),
             actions: <Widget>[
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: Text('OK'),
+                child: const Text('OK'),
               ),
             ],
           );
         },
       );
-
       return;
     }
     _form.currentState!.save();
     try {
       setState(() {
         _isauthenticating = true;
+        _successMessage = ''; // Reset the success message
       });
       if (_islogin) {
+        // Login logic
         final usercredentials = await _firebase.signInWithEmailAndPassword(
             email: _enteredemail, password: _enteredpassword);
+
+        // On successful login
+        setState(() {
+          _successMessage = 'Login successful! Welcome, ${usercredentials.user!.email}';
+          _isauthenticating = false;
+        });
       } else {
+        // Sign-up logic
         final usercredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredemail, password: _enteredpassword);
-        final StorageRef = FirebaseStorage.instance
-            .ref()
-            .child('User_Images')
-            .child('${usercredentials.user!.uid}.jpg');
 
-        await StorageRef.putFile(_selectedimage!);
-        final imageurl = await StorageRef.getDownloadURL();
+        // Store user details in Firestore without image URL
         await FirebaseFirestore.instance
             .collection('users')
             .doc(usercredentials.user!.uid)
             .set({
           'username': _enteredusername,
           'email': _enteredemail,
-          'image url': imageurl
+        });
+
+        // On successful registration
+        setState(() {
+          _successMessage = 'Registration successful! Welcome, $_enteredusername';
+          _isauthenticating = false;
         });
       }
     } on FirebaseAuthException catch (error) {
@@ -103,34 +103,45 @@ class _AuthScreenState extends State<AuthScreen> {
       backgroundColor: Theme.of(context).colorScheme.primary,
       body: Center(
         child: SingleChildScrollView(
-          child: Column(children: [
-            Container(
-              margin: const EdgeInsets.only(
-                top: 30,
-                left: 20,
-                right: 20,
-                bottom: 20,
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(
+                  top: 30,
+                  left: 20,
+                  right: 20,
+                  bottom: 20,
+                ),
+                width: 200,
+                child: Image.asset("assets/images/recipeLogo.png"),
               ),
-              width: 200,
-              child: Image.asset(
-                  'C:\\Flutter Projects\\chat_app\\lib\\assets\\images\\chat.png'),
-            ),
-            Card(
-              margin: const EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
+              Card(
+                margin: const EdgeInsets.all(20),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
                     key: _form,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (!_islogin)
-                          UserImagePicker(Imagepicker: (pickedimage) {
-                            _selectedimage = pickedimage;
-                          }),
+                          TextFormField(
+                            decoration: const InputDecoration(labelText: 'Username'),
+                            enableSuggestions: true,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.isEmpty ||
+                                  value.trim().length < 4) {
+                                return 'Please enter at least 4 letters';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredusername = value!;
+                            },
+                          ),
                         TextFormField(
-                          decoration:
-                          const InputDecoration(labelText: 'Email Address'),
+                          decoration: const InputDecoration(labelText: 'Email Address'),
                           keyboardType: TextInputType.emailAddress,
                           autocorrect: false,
                           textCapitalization: TextCapitalization.none,
@@ -146,30 +157,12 @@ class _AuthScreenState extends State<AuthScreen> {
                             _enteredemail = value!;
                           },
                         ),
-                        if (!_islogin)
-                          TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Username',
-                              ),
-                              enableSuggestions: true,
-                              validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty ||
-                                    value.trim().length < 4) {
-                                  return 'Please enter atleast 4 letters';
-                                }
-                                return null;
-                              },
-                              onSaved: (value) {
-                                _enteredusername = value!;
-                              }),
                         TextFormField(
-                          decoration:
-                          const InputDecoration(labelText: 'Password'),
+                          decoration: const InputDecoration(labelText: 'Password'),
                           obscureText: true,
                           validator: (value) {
                             if (value == null || value.trim().length < 6) {
-                              return 'Password must be atleast 6 characters long';
+                              return 'Password must be at least 6 characters long';
                             }
                             return null;
                           },
@@ -177,35 +170,46 @@ class _AuthScreenState extends State<AuthScreen> {
                             _enteredpassword = value!;
                           },
                         ),
-                        const SizedBox(
-                          height: 12,
-                        ),
+                        const SizedBox(height: 12),
                         if (_isauthenticating)
                           const CircularProgressIndicator(),
                         if (!_isauthenticating)
                           ElevatedButton(
                             onPressed: _issubmit,
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer),
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer),
                             child: Text(_islogin ? 'Login' : 'Signup'),
                           ),
                         if (!_isauthenticating)
                           TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _islogin = !_islogin;
-                                });
-                              },
-                              child: Text(_islogin
-                                  ? 'Create an account'
-                                  : 'I already have an account'))
+                            onPressed: () {
+                              setState(() {
+                                _islogin = !_islogin;
+                              });
+                            },
+                            child: Text(_islogin
+                                ? 'Create an account'
+                                : 'I already have an account'),
+                          ),
+                        if (_successMessage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(
+                              _successMessage,
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                       ],
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            )
-          ]),
+            ],
+          ),
         ),
       ),
     );
