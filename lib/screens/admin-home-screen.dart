@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:recipe_books/models/recipe-book.dart';
+import '../firebase_messaging_service.dart';
 import 'auth.dart';
 import 'create-recipe-book-screen.dart';
 import 'edit-recipe-book-screen.dart';
 
 class HomeScreen extends StatelessWidget {
+  final FirebaseMessagingService _firebaseMessagingService =
+  FirebaseMessagingService(); // Initialize notification service
+
   // Fetch the recipe books from Firebase Firestore
   Stream<List<RecipeBook>> getRecipeBooks() {
     return FirebaseFirestore.instance
@@ -25,6 +29,12 @@ class HomeScreen extends StatelessWidget {
         .doc(recipeBookId)
         .delete()
         .then((_) {
+      // Show notification on recipe book deletion
+      _firebaseMessagingService.showNotification(
+        'Recipe Book Deleted',
+        'The recipe book has been successfully deleted.',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Recipe book deleted')),
       );
