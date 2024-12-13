@@ -1,39 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:recipe_books/models/recipe.dart';
-import 'create-recipe-screen.dart';
-import 'edit-recipe-screen.dart';
+import 'package:recipe_books/models/recipe-book.dart';
+import 'create-recipe-book-screen.dart';
+import 'edit-recipe-book-screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  // Fetch the recipes from Firebase Firestore
-  Stream<List<Recipe>> getRecipes() {
+  // Fetch the recipe books from Firebase Firestore
+  Stream<List<RecipeBook>> getRecipeBooks() {
     return FirebaseFirestore.instance
-        .collection('recipes') // Your Firestore collection name
+        .collection('recipe_books') // Your Firestore collection name
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        return Recipe(
-          id: doc.id,
-          title: doc['title'],
-          description: doc['description'],
-        );
+        return RecipeBook.fromFirestore(doc); // Use fromFirestore to create RecipeBook from Firestore document
       }).toList();
     });
   }
 
-  // Delete the recipe from Firestore
-  void _deleteRecipe(String recipeId, BuildContext context) {
+  // Delete the recipe book from Firestore
+  void _deleteRecipeBook(String recipeBookId, BuildContext context) {
     FirebaseFirestore.instance
-        .collection('recipes')
-        .doc(recipeId)
+        .collection('recipe_books')
+        .doc(recipeBookId)
         .delete()
         .then((_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recipe deleted')),
+        SnackBar(content: Text('Recipe book deleted')),
       );
     }).catchError((error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting recipe: $error')),
+        SnackBar(content: Text('Error deleting recipe book: $error')),
       );
     });
   }
@@ -42,7 +38,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recipe Book'),
+        title: const Text('Recipe Books'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -50,49 +46,50 @@ class HomeScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CreateRecipeScreen(),
+                  builder: (context) => CreateRecipeBookScreen(),
                 ),
               );
             },
           ),
         ],
       ),
-      body: StreamBuilder<List<Recipe>>(
-        stream: getRecipes(),
+      body: StreamBuilder<List<RecipeBook>>(
+        stream: getRecipeBooks(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading recipes'));
+            return const Center(child: Text('Error loading recipe books'));
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No recipes found'));
+            return const Center(child: Text('No recipe books found'));
           }
 
-          final recipes = snapshot.data!;
+          final recipeBooks = snapshot.data!;
 
           return ListView.builder(
-            itemCount: recipes.length,
+            itemCount: recipeBooks.length,
             itemBuilder: (context, index) {
-              final recipe = recipes[index];
+              final recipeBook = recipeBooks[index];
               return Dismissible(
-                key: Key(recipe.id),
+                key: Key(recipeBook.id),
                 direction: DismissDirection.endToStart, // Swipe from right to left
                 onDismissed: (direction) {
-                  // Call _deleteRecipe when the recipe is swiped away
-                  _deleteRecipe(recipe.id, context);
+                  // Call _deleteRecipeBook when the recipe book is swiped away
+                  _deleteRecipeBook(recipeBook.id, context);
                 },
                 child: ListTile(
-                  title: Text(recipe.title),
-                  subtitle: Text(recipe.description),
+                  title: Text(recipeBook.title),
+                  subtitle: Text(recipeBook.description),
+                  trailing: Text('\$${recipeBook.price.toStringAsFixed(2)}'), // Displaying price
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EditRecipeScreen(recipe: recipe),
+                        builder: (context) => EditRecipeBookScreen(recipeBook: recipeBook),
                       ),
                     );
                   },

@@ -1,23 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Recipe {
+class RecipeBook {
   final String id;
   final String title;
   final String description;
+  final double price; // Added price for purchasing the book
 
-  Recipe({
+  RecipeBook({
     required this.id,
     required this.title,
     required this.description,
+    required this.price,
   });
 
-  // Factory method to create a Recipe from Firestore document
-  factory Recipe.fromFirestore(DocumentSnapshot doc) {
+  // Factory method to create a RecipeBook from Firestore document
+  factory RecipeBook.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return Recipe(
+    return RecipeBook(
       id: doc.id,
       title: data['title'] ?? '',
       description: data['description'] ?? '',
+      price: data['price']?.toDouble() ?? 0.0, // Ensuring price is a double
     );
   }
 }

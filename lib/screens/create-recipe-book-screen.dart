@@ -1,25 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:recipe_books/models/recipe.dart'; // Your Recipe model
+import 'package:recipe_books/models/recipe-book.dart'; // Your RecipeBook model
 
-class CreateRecipeScreen extends StatefulWidget {
+class CreateRecipeBookScreen extends StatefulWidget {
   @override
-  _CreateRecipeScreenState createState() => _CreateRecipeScreenState();
+  _CreateRecipeBookScreenState createState() => _CreateRecipeBookScreenState();
 }
 
-class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+class _CreateRecipeBookScreenState extends State<CreateRecipeBookScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _priceController = TextEditingController();
   bool _isSubmitting = false; // To show loading state while submitting
 
-  void _createRecipe() async {
+  void _createRecipeBook() async {
     final title = _titleController.text;
     final description = _descriptionController.text;
+    final priceText = _priceController.text;
+    final price = double.tryParse(priceText) ?? 0.0; // Ensure price is a valid double
 
-    if (title.isEmpty || description.isEmpty) {
-      // Optionally, show an error message if fields are empty
+    if (title.isEmpty || description.isEmpty || price <= 0) {
+      // Optionally, show an error message if fields are empty or invalid
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please provide both title and description')),
+        SnackBar(content: Text('Please provide valid title, description, and price')),
       );
       return;
     }
@@ -29,22 +32,24 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     });
 
     try {
-      final newRecipe = Recipe(
+      final newRecipeBook = RecipeBook(
         id: DateTime.now().toString(), // Unique ID based on time
         title: title,
         description: description,
+        price: price,
       );
 
-      // Add recipe to Firebase Firestore
-      await FirebaseFirestore.instance.collection('recipes').add({
-        'title': newRecipe.title,
-        'description': newRecipe.description,
+      // Add recipe book to Firebase Firestore
+      await FirebaseFirestore.instance.collection('recipe_books').add({
+        'title': newRecipeBook.title,
+        'description': newRecipeBook.description,
+        'price': newRecipeBook.price,
         'createdAt': FieldValue.serverTimestamp(), // Optionally add timestamp
       });
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recipe created successfully!')),
+        SnackBar(content: Text('Recipe Book created successfully!')),
       );
 
       // Go back to the previous screen after creation
@@ -52,7 +57,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     } catch (e) {
       // Show error message in case of failure
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create recipe: $e')),
+        SnackBar(content: Text('Failed to create recipe book: $e')),
       );
     } finally {
       setState(() {
@@ -65,7 +70,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Recipe'),
+        title: const Text('Create Recipe Book'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -73,18 +78,23 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Recipe Title'),
+              decoration: const InputDecoration(labelText: 'Recipe Book Title'),
             ),
             TextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Recipe Description'),
+              decoration: const InputDecoration(labelText: 'Recipe Book Description'),
+            ),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: 'Price'),
+              keyboardType: TextInputType.number,
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _isSubmitting ? null : _createRecipe, // Disable button while submitting
+              onPressed: _isSubmitting ? null : _createRecipeBook, // Disable button while submitting
               child: _isSubmitting
                   ? CircularProgressIndicator() // Show a loading indicator while submitting
-                  : Text('Create Recipe'),
+                  : Text('Create Recipe Book'),
             ),
           ],
         ),
