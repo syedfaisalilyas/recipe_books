@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:recipe_books/screens/auth.dart';
-import 'package:recipe_books/screens/registration-screen.dart'; // Import your Auth screen
+import 'package:recipe_books/screens/home-screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensures Firebase is initialized before app starts
@@ -27,7 +26,12 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AuthScreen(), // Your Auth Screen
+      initialRoute: '/', // Set initial route to home screen
+      routes: {
+        '/': (context) =>  HomeScreen(), // Define the HomeScreen route
+
+      },
     );
   }
 }
+

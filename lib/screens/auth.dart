@@ -61,6 +61,7 @@ class _AuthScreenState extends State<AuthScreen> {
         setState(() {
           _successMessage = 'Login successful! Welcome, ${usercredentials.user!.email}';
           _isauthenticating = false;
+          Navigator.pushNamed(context, "PurchaseScreen");
         });
       } else {
         // Sign-up logic
@@ -80,6 +81,7 @@ class _AuthScreenState extends State<AuthScreen> {
         setState(() {
           _successMessage = 'Registration successful! Welcome, $_enteredusername';
           _isauthenticating = false;
+          Navigator.pushNamed(context, "PurchaseScreen");
         });
       }
     } on FirebaseAuthException catch (error) {
