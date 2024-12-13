@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:recipe_books/screens/user-home-screen.dart';
+
+import 'admin-home-screen.dart';
 
 final _firebase = FirebaseAuth.instance;
 
@@ -50,48 +53,54 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       setState(() {
         _isauthenticating = true;
-        _successMessage = ''; // Reset the success message
       });
       if (_islogin) {
         // Login logic
         final usercredentials = await _firebase.signInWithEmailAndPassword(
             email: _enteredemail, password: _enteredpassword);
 
-        // On successful login
+        // Navigate based on the email
         setState(() {
-          _successMessage = 'Login successful! Welcome, ${usercredentials.user!.email}';
           _isauthenticating = false;
-          Navigator.pushNamed(context, "PurchaseScreen");
         });
+
+        // Use Navigator.pushReplacement to navigate to the appropriate screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => usercredentials.user?.email == 'student123@gmail.com'
+                ? HomeScreen()
+                : UserHomeScreen(),
+          ),
+        );
       } else {
-        // Sign-up logic
+        // Signup logic
         final usercredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredemail, password: _enteredpassword);
 
-        // Store user details in Firestore without image URL
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(usercredentials.user!.uid)
-            .set({
+        // Store user details in Firestore
+        await FirebaseFirestore.instance.collection('users').doc(usercredentials.user!.uid).set({
           'username': _enteredusername,
           'email': _enteredemail,
         });
 
-        // On successful registration
+        // On successful registration, navigate to the user home screen
         setState(() {
-          _successMessage = 'Registration successful! Welcome, $_enteredusername';
           _isauthenticating = false;
-          Navigator.pushNamed(context, "PurchaseScreen");
         });
+
+        // Use Navigator.pushReplacement to navigate to the User Home Screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserHomeScreen(),
+          ),
+        );
       }
     } on FirebaseAuthException catch (error) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.message ?? 'Authentication failed',
-          ),
-        ),
+        SnackBar(content: Text(error.message ?? 'Authentication failed')),
       );
       setState(() {
         _isauthenticating = false;
