@@ -65,14 +65,17 @@ class _AuthScreenState extends State<AuthScreen> {
         });
 
         // Use Navigator.pushReplacement to navigate to the appropriate screen
+        Widget targetScreen = usercredentials.user?.email == 'student123@gmail.com'
+            ? HomeScreen()
+            : UserHomeScreen();
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => usercredentials.user?.email == 'student123@gmail.com'
-                ? HomeScreen()
-                : UserHomeScreen(),
+            builder: (context) => targetScreen,
           ),
         );
+
       } else {
         // Signup logic
         final usercredentials = await _firebase.createUserWithEmailAndPassword(

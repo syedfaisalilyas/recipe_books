@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:recipe_books/screens/auth.dart';
-import 'screens/user-home-screen.dart';  // Import UserHomeScreen
-import 'screens/admin-home-screen.dart';  // Import AdminHomeScreen
+import 'providers/cart-provider.dart';
+import 'screens/user-home-screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => CartProvider()),
+    ],
+    child: const MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,12 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => AuthScreen(), // Authentication Screen
-        '/home': (context) => HomeScreen(), // Admin Home Screen
-        '/user-home': (context) => UserHomeScreen(), // User Home Screen
-      },
+      home: AuthScreen(),
     );
   }
 }
