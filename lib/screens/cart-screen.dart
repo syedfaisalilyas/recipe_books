@@ -9,14 +9,37 @@ class CartScreen extends StatelessWidget {
 
   const CartScreen({super.key, required this.cartItems});
 
+  // Function to merge duplicate items in the cart
+  List<CartItem> _mergeCartItems() {
+    final Map<String, CartItem> mergedItems = {};
+
+    for (var item in cartItems) {
+      if (mergedItems.containsKey(item.recipeBook.id)) {
+        // If item already exists, increment its quantity
+        mergedItems[item.recipeBook.id] = CartItem(
+          recipeBook: item.recipeBook,
+          quantity: mergedItems[item.recipeBook.id]!.quantity + item.quantity,
+        );
+      } else {
+        // Otherwise, add it to the map
+        mergedItems[item.recipeBook.id] = item;
+      }
+    }
+
+    // Convert the map back to a list
+    return mergedItems.values.toList();
+  }
+
   // Function to handle purchase and store in Firebase
   Future<void> _handlePurchase(BuildContext context) async {
     try {
+      final mergedCartItems = _mergeCartItems();
+
       // Create a new purchase in Firestore
       final purchaseRef = FirebaseFirestore.instance.collection('purchases').doc();
 
       // Prepare the purchase data
-      final purchaseData = cartItems.map((cartItem) {
+      final purchaseData = mergedCartItems.map((cartItem) {
         return {
           'recipeBookId': cartItem.recipeBook.id,
           'title': cartItem.recipeBook.title,
@@ -53,31 +76,35 @@ class CartScreen extends StatelessWidget {
 
   // Calculate the total amount in the cart
   double getTotalAmount() {
-    return cartItems.fold(0, (sum, item) {
+    final mergedCartItems = _mergeCartItems();
+
+    return mergedCartItems.fold(0, (sum, item) {
       return sum + (item.recipeBook.price * item.quantity);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final mergedCartItems = _mergeCartItems();
     final totalAmount = getTotalAmount();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Your Cart')),
-      body: cartItems.isEmpty
+      body: mergedCartItems.isEmpty
           ? const Center(child: Text('Your cart is empty'))
           : Column(
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: cartItems.length,
+              itemCount: mergedCartItems.length,
               itemBuilder: (context, index) {
-                final cartItem = cartItems[index];
+                final cartItem = mergedCartItems[index];
                 return ListTile(
                   title: Text(cartItem.recipeBook.title),
                   subtitle: Text('Quantity: ${cartItem.quantity}'),
                   trailing: Text(
-                      '\$${(cartItem.recipeBook.price * cartItem.quantity).toStringAsFixed(2)}'),
+                    '\$${(cartItem.recipeBook.price * cartItem.quantity).toStringAsFixed(2)}',
+                  ),
                 );
               },
             ),
@@ -91,7 +118,7 @@ class CartScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: cartItems.isEmpty
+      bottomNavigationBar: mergedCartItems.isEmpty
           ? null
           : Padding(
         padding: const EdgeInsets.all(8.0),
