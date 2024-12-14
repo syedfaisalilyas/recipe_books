@@ -11,7 +11,7 @@ class HomeScreen extends StatelessWidget {
   // Fetch the recipe books from Firebase Firestore
   Stream<List<RecipeBook>> getRecipeBooks() {
     return FirebaseFirestore.instance
-        .collection('recipe_books') // Your Firestore collection name
+        .collection('recipe_books')
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -28,22 +28,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Show a notification after updating a recipe book
-  void _showUpdateNotification(String title, String description) {
-    FirebaseMessagingService().showNotification(
-      'Recipe Book Updated',
-      'Title: $title\nDescription: $description',
-    );
-  }
-
-  // Show a notification after deleting a recipe book
-  void _showDeleteNotification(String title) {
-    FirebaseMessagingService().showNotification(
-      'Recipe Book Deleted',
-      'Title: $title has been deleted.',
-    );
-  }
-
   // Add the recipe book to Firestore
   Future<void> _addRecipeBook(RecipeBook recipeBook, BuildContext context) async {
     try {
@@ -51,6 +35,8 @@ class HomeScreen extends StatelessWidget {
         'title': recipeBook.title,
         'description': recipeBook.description,
         'price': recipeBook.price,
+        'image': recipeBook.image, // Add image URL
+        'type': recipeBook.type,   // Add type
       });
 
       // Show a notification after adding the book
@@ -69,17 +55,13 @@ class HomeScreen extends StatelessWidget {
   // Update the recipe book in Firestore
   Future<void> _updateRecipeBook(String recipeBookId, RecipeBook updatedRecipeBook, BuildContext context) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('recipe_books')
-          .doc(recipeBookId)
-          .update({
+      await FirebaseFirestore.instance.collection('recipe_books').doc(recipeBookId).update({
         'title': updatedRecipeBook.title,
         'description': updatedRecipeBook.description,
         'price': updatedRecipeBook.price,
+        'image': updatedRecipeBook.image,
+        'type': updatedRecipeBook.type,
       });
-
-      // Show a notification after updating the book
-      _showUpdateNotification(updatedRecipeBook.title, updatedRecipeBook.description);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Recipe book updated')),
@@ -151,8 +133,15 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 child: ListTile(
+                  leading: recipeBook.image != null
+                      ? Image.network(recipeBook.image!, width: 50, height: 50, fit: BoxFit.cover)
+                      : const Icon(Icons.book, size: 50),
                   title: Text(recipeBook.title),
-                  subtitle: Text(recipeBook.description),
+                  subtitle: Text(
+                    '${recipeBook.description}\nType: ${recipeBook.type}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: Text('\$${recipeBook.price.toStringAsFixed(2)}'),
                   onTap: () {
                     Navigator.push(
@@ -187,9 +176,6 @@ class HomeScreen extends StatelessWidget {
         .doc(recipeBookId)
         .delete()
         .then((_) {
-      // Show a notification after deletion
-      _showDeleteNotification(title);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Recipe book deleted')),
       );

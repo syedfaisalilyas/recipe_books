@@ -4,6 +4,8 @@ import '../models/cart-item.dart';
 import '../models/recipe-book.dart';
 import 'auth.dart';
 import 'cart-screen.dart';
+import 'recipe-book-detail-screen.dart'; // Assuming a detailed screen exists
+import '../firebase_messaging_service.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -40,6 +42,14 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
+  // Show a notification after adding an item to the cart
+  void _showAddToCartNotification(RecipeBook recipeBook) {
+    FirebaseMessagingService().showNotification(
+      'Added to Cart',
+      '${recipeBook.title} has been added to your cart.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +58,27 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         actions: [
           // Cart icon to navigate to the CartScreen
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: Stack(
+              children: [
+                const Icon(Icons.shopping_cart),
+                if (_cart.isNotEmpty)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: CircleAvatar(
+                      radius: 10,
+                      backgroundColor: Colors.red,
+                      child: Text(
+                        _cart.length.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             onPressed: () {
               // Navigate to the Cart Screen and pass the cart data
               Navigator.push(
@@ -86,17 +116,34 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   itemBuilder: (context, index) {
                     final recipeBook = recipeBooks[index];
                     return ListTile(
+                      leading: recipeBook.image != null
+                          ? Image.network(
+                        recipeBook.image!, // Display image from the URL if available
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      )
+                          : const Icon(Icons.book), // Placeholder if no image
                       title: Text(recipeBook.title),
                       subtitle: Text(recipeBook.description),
                       trailing: IconButton(
                         icon: const Icon(Icons.add_shopping_cart),
                         onPressed: () {
-                          // Add recipe book to cart
+                          // Add recipe book to cart and show notification
                           _addToCart(recipeBook);
+                          _showAddToCartNotification(recipeBook);
                         },
                       ),
                       onTap: () {
-                        // Navigate to edit screen (if you have one)
+                        // Navigate to detailed screen and pass recipeBookId as an argument
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RecipeBookDetailScreen(
+                              recipeBookId: recipeBook.id, // Pass the recipeBookId here
+                            ),
+                          ),
+                        );
                       },
                     );
                   },
