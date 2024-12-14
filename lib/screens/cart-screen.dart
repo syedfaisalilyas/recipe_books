@@ -51,22 +51,45 @@ class CartScreen extends StatelessWidget {
     }
   }
 
+  // Calculate the total amount in the cart
+  double getTotalAmount() {
+    return cartItems.fold(0, (sum, item) {
+      return sum + (item.recipeBook.price * item.quantity);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final totalAmount = getTotalAmount();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Your Cart')),
       body: cartItems.isEmpty
           ? const Center(child: Text('Your cart is empty'))
-          : ListView.builder(
-        itemCount: cartItems.length,
-        itemBuilder: (context, index) {
-          final cartItem = cartItems[index];
-          return ListTile(
-            title: Text(cartItem.recipeBook.title),
-            subtitle: Text('Quantity: ${cartItem.quantity}'),
-            trailing: Text('\$${cartItem.recipeBook.price * cartItem.quantity}'),
-          );
-        },
+          : Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: cartItems.length,
+              itemBuilder: (context, index) {
+                final cartItem = cartItems[index];
+                return ListTile(
+                  title: Text(cartItem.recipeBook.title),
+                  subtitle: Text('Quantity: ${cartItem.quantity}'),
+                  trailing: Text(
+                      '\$${(cartItem.recipeBook.price * cartItem.quantity).toStringAsFixed(2)}'),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Total: \$${totalAmount.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: cartItems.isEmpty
           ? null
